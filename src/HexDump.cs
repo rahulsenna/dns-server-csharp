@@ -1,0 +1,124 @@
+using System.Text;
+
+public static class HexdumpUtil
+{
+    public static void Hexdump(byte[] data)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+
+        Hexdump(data, data.Length);
+    }
+
+    public static void Hexdump(byte[] data, int size)
+    {
+        if (data == null)
+            throw new ArgumentNullException(nameof(data));
+        if (size < 0 || size > data.Length)
+            throw new ArgumentOutOfRangeException(nameof(size));
+
+        var buffer = new StringBuilder(4096);
+
+        for (int i = 0; i < size; i += 16)
+        {
+            var line = new StringBuilder(80);
+
+            // Address part
+            line.AppendFormat("{0:x8}  ", i);
+
+            // Hex part
+            for (int j = 0; j < 16; j++)
+            {
+                if (i + j < size)
+                    line.AppendFormat("{0:x2} ", data[i + j]);
+                else
+                    line.Append("   ");
+
+                if (j == 7)
+                    line.Append(" ");
+            }
+
+            // ASCII part
+            line.Append(" |");
+            for (int j = 0; j < 16 && i + j < size; j++)
+            {
+                byte ch = data[i + j];
+                line.Append(IsPrintable(ch) ? (char)ch : '.');
+            }
+            line.Append("|\n");
+
+            // Append line to buffer
+            if (buffer.Length + line.Length < 4096)
+            {
+                buffer.Append(line);
+            }
+            else
+            {
+                // Prevent buffer overflow
+                break;
+            }
+        }
+
+        // Print the complete output
+        Console.Error.Write(
+            "Idx       | Hex                                             | ASCII\n" +
+            "----------+-------------------------------------------------+-----------------\n" +
+            buffer.ToString());
+    }
+
+    // Alternative overload for spans (more memory efficient)
+    public static void Hexdump(ReadOnlySpan<byte> data)
+    {
+        var buffer = new StringBuilder(4096);
+        int size = data.Length;
+
+        for (int i = 0; i < size; i += 16)
+        {
+            var line = new StringBuilder(80);
+
+            // Address part
+            line.AppendFormat("{0:x8}  ", i);
+
+            // Hex part
+            for (int j = 0; j < 16; j++)
+            {
+                if (i + j < size)
+                    line.AppendFormat("{0:x2} ", data[i + j]);
+                else
+                    line.Append("   ");
+
+                if (j == 7)
+                    line.Append(" ");
+            }
+
+            // ASCII part
+            line.Append(" |");
+            for (int j = 0; j < 16 && i + j < size; j++)
+            {
+                byte ch = data[i + j];
+                line.Append(IsPrintable(ch) ? (char)ch : '.');
+            }
+            line.Append("|\n");
+
+            // Append line to buffer
+            if (buffer.Length + line.Length < 4096)
+            {
+                buffer.Append(line);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        Console.Error.Write(
+            "Idx       | Hex                                             | ASCII\n" +
+            "----------+-------------------------------------------------+-----------------\n" +
+            buffer.ToString());
+    }
+
+    private static bool IsPrintable(byte ch)
+    {
+        return ch >= 32 && ch <= 126; // Printable ASCII range
+    }
+}

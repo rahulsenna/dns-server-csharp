@@ -26,8 +26,17 @@ while (true)
 
     Console.WriteLine($"Received {ReceivedData.Length} bytes from {SourceEndPoint}: {ReceivedString}");
 
-    // Create an empty response
-    byte[] Response = Encoding.Latin1.GetBytes("");
+
+    byte[] Response = [
+            // Header (12 bytes)
+            ReceivedData[0], ReceivedData[1], // Transaction ID
+            0x81, 0x80, // Response flags (NOT 0x01, 0x00!)
+            0x00, 0x01, // Question Count: 1
+            0x00, 0x01, // Answer Count: 1 (NOT 0!)
+            0x00, 0x00, // Authority Count: 0
+            0x00, 0x00, // Additional Count: 0
+            ];
+    
 
     // Send Response
     UdpClient.Send(Response, Response.Length, SourceEndPoint);

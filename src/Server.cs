@@ -35,6 +35,7 @@ while (true)
             0x00, 0x01, // Answer Count: 1 (NOT 0!)
             0x00, 0x00, // Authority Count: 0
             0x00, 0x00, // Additional Count: 0
+            ..ReceivedData[12..] // Domain
             ];
     
 

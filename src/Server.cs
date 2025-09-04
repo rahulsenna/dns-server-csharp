@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -35,10 +36,21 @@ while (true)
             127, 0, 0, 1            // RDATA: 127.0.0.1 (localhost)
     ];
 
+
+    ushort ResponseFlagsBits = (ushort) ((ReceivedData[2] << 8) | (ReceivedData[3]));
+    // ushort ResponseFlagsBits = BinaryPrimitives.ReadUInt16BigEndian(ReceivedData.AsSpan(2));
+    
+    ResponseFlagsBits |= 0b___1_____0000______0____0___0___0___000_____0100;
+    /*                       QR    OPCODE    AA   TC  RD  RA   Z      RCODE      */
+    byte[] ResponseFlags = new byte[2];
+    BinaryPrimitives.WriteUInt16BigEndian(ResponseFlags, ResponseFlagsBits);
+    // byte[] ResponseFlags = [..BitConverter.GetBytes(ResponseFlagsBits).Reverse()];
+
+
     byte[] Response = [
             // Header (12 bytes)
             ReceivedData[0], ReceivedData[1], // Transaction ID
-            0x81, 0x80,           // Response flags (NOT 0x01, 0x00!)
+            ..ResponseFlags,      // Response flags
             0x00, 0x01,           // Question Count: 1
             0x00, 0x01,           // Answer Count: 1 (NOT 0!)
             0x00, 0x00,           // Authority Count: 0

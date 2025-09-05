@@ -9,7 +9,8 @@ using static HexdumpUtil;
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 Console.WriteLine("Logs from your program will appear here!");
 
-
+string resolve_ip_str = args.Length switch {  2 => args[1], _ => "" };
+Console.WriteLine($"resolve_ip: {resolve_ip_str}"); 
 // Resolve UDP address
 IPAddress Ipaddress = IPAddress.Parse("127.0.0.1");
 int port = 2053;
@@ -17,6 +18,14 @@ IPEndPoint UdpEndPoint = new(Ipaddress, port);
 
 // Create UDP socket
 UdpClient UdpClient = new(UdpEndPoint);
+
+// Forward UDP Resolver
+string resolve_ip_s = resolve_ip_str[0..resolve_ip_str.IndexOf(':')];
+IPAddress ResolveIpaddress = IPAddress.Parse(resolve_ip_s);
+string resolve_port_s = resolve_ip_str[(resolve_ip_s.Length + 1)..];
+int resolve_port = Convert.ToInt32(resolve_port_s);
+IPEndPoint ResolveUdpEndPoint = new(ResolveIpaddress, resolve_port);
+UdpClient upstream = new();
 
 while (true)
 {
@@ -38,6 +47,17 @@ while (true)
             0x00, 0x04,             // RDLENGTH: 4 bytes
             127, 0, 0, 1            // RDATA: 127.0.0.1 (localhost)
     ];
+    if (QuestionCount == 1)
+    {
+        // Forward to upstream resolver
+        upstream.Send(ReceivedData, ReceivedData.Length, ResolveUdpEndPoint);
+        // Receive resolver response
+        IPEndPoint fromResolver = new(IPAddress.Any, 0);
+        byte[] forwarded_response = upstream.Receive(ref fromResolver);
+
+        UdpClient.Send(forwarded_response, forwarded_response.Length, SourceEndPoint);
+        continue;
+    }
 
     while (QuestionCount > 1)
     {
